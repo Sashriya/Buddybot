@@ -103,11 +103,19 @@ h1 {
 
 .stButton button {
     background: linear-gradient(135deg, #38bdf8, #818cf8);
-    color: black;
+    color: white;
     border-radius: 12px;
     padding: 8px 20px;
     border: none;
     font-size: 15px;
+    font-weight: 600;
+    transition: none;
+}
+
+.stButton button:hover {
+    background: linear-gradient(135deg, #38bdf8, #818cf8);
+    color: white;
+    border: none;
 }
 
 footer {
@@ -173,22 +181,24 @@ if st.session_state.typing:
 st.markdown("</div>", unsafe_allow_html=True)
 
 # =====================================================
-# ✍️ INPUT ROW
+# ✍️ INPUT FORM
 # =====================================================
-col1, col2 = st.columns([4, 1])
+with st.form("chat_form", clear_on_submit=True):
 
-with col1:
-    user_input = st.text_input(
-        "Message",
-        placeholder="Talk here?",
-        label_visibility="collapsed"
-    )
+    col1, col2 = st.columns([4, 1])
 
-with col2:
-    send = st.button("Send 🚀")
+    with col1:
+        user_input = st.text_input(
+            "Message",
+            placeholder="Talk here?",
+            label_visibility="collapsed"
+        )
+
+    with col2:
+        send = st.form_submit_button("Send 🚀")
 
 # =====================================================
-# 🧠 CHAT LOGIC WITH TYPING EFFECT
+# 🧠 CHAT LOGIC
 # =====================================================
 if send and user_input.strip():
     st.session_state.messages.append(("user", user_input))
@@ -207,6 +217,7 @@ No bad words. No offensive language.
 Give responses in related to the user's query only.
 Speak properly without spelling mistakes.
 Give short and concise answers.
+User should satisfy with your answer.
 """
 
     with st.spinner(""):
