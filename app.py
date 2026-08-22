@@ -1,5 +1,5 @@
 import streamlit as st
-from groq import Groq
+from groq import Groq, NotFoundError
 from dotenv import load_dotenv
 import time
 import os
@@ -11,7 +11,45 @@ load_dotenv()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 client = Groq(api_key=GROQ_API_KEY)
-MODEL_NAME = "llama-3.3-70b-versatile"
+
+# =====================================================
+# 🧠 RESILIENT MODEL SELECTION
+# =====================================================
+# Hardcoding a model name ("llama-3.3-70b-versatile", then
+# "llama-3.1-8b-instant") keeps breaking because Groq retires model IDs
+# over time and availability can differ per account/plan. So instead of
+# guessing names, we ask Groq's /models endpoint what's ACTUALLY live on
+# THIS account right now, skip obvious non-chat models (audio/guard/TTS),
+# and cache the first one found. Result is stored in session_state so we
+# only do this discovery once per session, not on every message.
+def _looks_like_chat_model(model_id: str) -> bool:
+    bad_markers = ["whisper", "tts", "guard", "distil-whisper", "playai"]
+    return not any(marker in model_id.lower() for marker in bad_markers)
+
+def get_candidate_models():
+    """Return a list of chat-capable model IDs currently available on this account."""
+    try:
+        all_models = client.models.list().data
+    except Exception:
+        return []
+    # Prefer active models if the API exposes that flag
+    active = [m for m in all_models if getattr(m, "active", True)]
+    ids = [m.id for m in active if _looks_like_chat_model(m.id)]
+    # Nudge well-known fast/cheap chat models to the front if present
+    priority_hints = ["instant", "versatile", "gpt-oss", "kimi", "qwen"]
+    ids.sort(key=lambda x: not any(h in x.lower() for h in priority_hints))
+    return ids
+
+def get_working_model():
+    """Return a cached, confirmed-working model name, discovering one if needed."""
+    if "groq_model" in st.session_state:
+        return st.session_state.groq_model
+    candidates = get_candidate_models()
+    st.session_state.groq_candidates = candidates
+    if candidates:
+        st.session_state.groq_model = candidates[0]
+        return candidates[0]
+    return None
 
 # =====================================================
 # 🎨 PAGE CONFIG
@@ -220,22 +258,45 @@ Give short and concise answers.
 User should satisfy with your answer.
 """
 
+    reply = None
     with st.spinner(""):
-        response = client.chat.completions.create(
-            model=MODEL_NAME,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": st.session_state.messages[-1][1]}
-            ],
-            temperature=0.7,
-            max_tokens=512
-        )
+        model_name = get_working_model()
+        candidates = st.session_state.get("groq_candidates", [])
+        # Try the cached model first, then fall through remaining
+        # candidates if it happens to fail (e.g. retired mid-session,
+        # or not enabled for this account/plan).
+        to_try = [model_name] + [c for c in candidates if c != model_name] if model_name else candidates
 
-    reply = response.choices[0].message.content
+        last_error = None
+        for candidate in to_try:
+            try:
+                response = client.chat.completions.create(
+                    model=candidate,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user", "content": st.session_state.messages[-1][1]}
+                    ],
+                    temperature=0.7,
+                    max_tokens=512
+                )
+                reply = response.choices[0].message.content
+                st.session_state.groq_model = candidate  # remember what actually worked
+                break
+            except NotFoundError as e:
+                last_error = e
+                continue  # this model isn't available on this account — try next
+            except Exception as e:
+                last_error = e
+                continue
+
+        if reply is None:
+            st.session_state.pop("groq_model", None)
+            if last_error is None:
+                reply = "Oops, en Groq account la yaadhavadhu model ready illa 😅. Console la check pannunga (console.groq.com) — API key correct-a irukka nu paarunga."
+            else:
+                reply = f"Oops, konjam issue vandhuchu 😅 ({type(last_error).__name__}). Try again please!"
 
     time.sleep(0.6)  # 👈 makes typing feel real
     st.session_state.messages.append(("bot", reply))
     st.session_state.typing = False
     st.rerun()
-
-
