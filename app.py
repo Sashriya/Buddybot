@@ -165,7 +165,7 @@ footer {
 # =====================================================
 # 🧠 HEADER
 # =====================================================
-st.markdown("<h1>🤖 BlaBlaBot</h1>", unsafe_allow_html=True)
+st.markdown("<h1>🤖 BuddyBot</h1>", unsafe_allow_html=True)
 st.markdown(
     "<div class='subtitle'>AI Friendly Chatbot</div>",
     unsafe_allow_html=True
