@@ -1,6 +1,6 @@
-# 🤖 BlaBlaBot
+# 🤖 BuddyBot
 
-An AI friendly chatbot built with **Streamlit** and powered by **Groq's** LLM API. BlaBlaBot (internally titled "BuddyBot") chats with users in clean **Tanglish (Tamil-English slang)**, with a polished dark, "liquid glass" style UI.
+An AI friendly chatbot built with **Streamlit** and powered by **Groq's** LLM API. Buddybot (internally titled "BuddyBot") chats with users in clean **Tanglish (Tamil-English slang)**, with a polished dark, "liquid glass" style UI.
 
 ## Features
 
@@ -52,7 +52,7 @@ An AI friendly chatbot built with **Streamlit** and powered by **Groq's** LLM AP
 ## Notes
 
 - Make sure your `.env` file is never committed — it's already excluded via `.gitignore`
-- The bot's personality/tone (Tanglish, short and polite answers) is fully controlled by the `SYSTEM_PROMPT` in `app.py` — tweak it there to change how BlaBlaBot talks
+- The bot's personality/tone (Tanglish, short and polite answers) is fully controlled by the `SYSTEM_PROMPT` in `app.py` — tweak it there to change how Buddybot talks
 
 ## License
 
